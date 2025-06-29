@@ -3,7 +3,6 @@ import { type Note } from "../../types/note";
 import css from "./NoteList.module.css";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { removeNote } from "../../lib/api";
-import iziToast from "izitoast";
 import { useState } from "react";
 import Link from 'next/link'
 
@@ -20,19 +19,22 @@ export default function NoteList({ notes }: NoteListProps) {
     onMutate: (id: number) => {
       setDeletingId(id);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ["Notes"] });
+      const { default: iziToast } = await import("izitoast");
       iziToast.success({
         message: "Note deleted successfully",
         position: "topCenter",
       });
     },
-    onError: () => {
+    onError: async () => {
+      const { default: iziToast } = await import("izitoast");
       iziToast.error({
         message: "Error deleting note, please try again",
         position: "topCenter",
       });
     },
+    
     onSettled: () => {
       setDeletingId(null);
     },

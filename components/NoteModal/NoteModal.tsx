@@ -1,6 +1,8 @@
+'use client'; // ⬅️ Обязательно!
+
 import css from "./NoteModal.module.css";
 import { createPortal } from "react-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import NoteForm from "../NoteForm/NoteForm";
 
 interface NoteModalProps {
@@ -8,20 +10,14 @@ interface NoteModalProps {
   onSuccess: () => void;
 }
 
-export default function NoteModal({ onClose }: NoteModalProps) {
-  // Закриття при кліку по бекдропу
-  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  };
+export default function NoteModal({ onClose, onSuccess }: NoteModalProps) {
+  const [isClient, setIsClient] = useState(false);
 
-  // Закриття по Escape + блокування скролу
   useEffect(() => {
+    setIsClient(true); // флаг, что компонент на клиенте
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
 
     document.addEventListener("keydown", handleKeyDown);
@@ -34,7 +30,14 @@ export default function NoteModal({ onClose }: NoteModalProps) {
     };
   }, [onClose]);
 
-  // Модальне вікно рендериться в body
+  const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
+
+  if (!isClient) return null; // ⬅️ Не рендерим ничего до загрузки клиента
+
   return createPortal(
     <div
       onClick={handleBackdropClick}
@@ -43,7 +46,7 @@ export default function NoteModal({ onClose }: NoteModalProps) {
       aria-modal="true"
     >
       <div className={css.modal}>
-        <NoteForm onSuccess={onClose} />
+        <NoteForm onSuccess={onSuccess} />
       </div>
     </div>,
     document.body
