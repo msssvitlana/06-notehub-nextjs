@@ -1,15 +1,10 @@
 'use client';
 
-import {
-  QueryClient,
-  QueryClientProvider,
-  HydrationBoundary,
-  useQuery,
-  keepPreviousData,
-} from '@tanstack/react-query';
 import { useState } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useDebounce } from 'use-debounce';
 import { fetchNotes } from '../../lib/api';
+import type { NoteListResponse } from '../../lib/api';
 import NoteList from '../../components/NoteList/NoteList';
 import Pagination from '../../components/Pagination/Pagination';
 import SearchBox from '../../components/SearchBox/SearchBox';
@@ -17,20 +12,29 @@ import NoteModal from '../../components/NoteModal/NoteModal';
 import Loader from '../../components/Loader/Loader';
 import css from './NotesPage.module.css';
 
-interface Props {
-  dehydratedState: unknown;
-}
+interface NotesClientProps {
+  notesData: NoteListResponse;
+  }
 
-function NotesClientContent() {
+
+export default function NotesClient({ notesData }: NotesClientProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [query, setQuery] = useState('');
   const [debouncedQuery] = useDebounce(query, 1000);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data, isLoading, isSuccess, isError, error, refetch } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isSuccess,
+  } = useQuery({
     queryKey: ['Notes', debouncedQuery, currentPage],
     queryFn: () => fetchNotes(debouncedQuery, currentPage),
     placeholderData: keepPreviousData,
+    initialData: currentPage === 1 && query === '' ? notesData : undefined,
   });
 
   const handleModalOpen = () => setModalOpen(true);
@@ -46,7 +50,7 @@ function NotesClientContent() {
       <header className={css.toolbar}>
         <SearchBox onChange={handleQueryChange} value={query} />
         {isLoading && <Loader />}
-        {isSuccess && data?.totalPages > 1 && (
+        {isSuccess && data.totalPages > 1 && (
           <Pagination
             pageCount={data.totalPages}
             onPageChange={handlePageChange}
@@ -64,7 +68,7 @@ function NotesClientContent() {
         </p>
       )}
 
-      {isSuccess && data?.notes?.length > 0 && <NoteList notes={data.notes} />}
+      {isSuccess && data.notes.length > 0 && <NoteList notes={data.notes} />}
 
       {modalOpen && (
         <NoteModal
@@ -78,16 +82,3 @@ function NotesClientContent() {
     </div>
   );
 }
-
-export default function NotesClient({ dehydratedState }: Props) {
-  const [queryClient] = useState(() => new QueryClient());
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <HydrationBoundary state={dehydratedState}>
-        <NotesClientContent />
-      </HydrationBoundary>
-    </QueryClientProvider>
-  );
-}
-
